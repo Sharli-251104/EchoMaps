@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice-Enabled Geospatial Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #map {
+            height: 100vh; /* Full viewport height */
+            width: 100vw; /* Full viewport width */
+        }
+        #control { 
+            margin: 20px; 
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+        #start {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        #info {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="control">
+        <button id="start">Start Voice Command</button>
+    </div>
+    <div id="map"></div>
+    <div id="info"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        // Initialize map
+        var map = L.map('map').setView([20.5937, 78.9629], 5);
+        var currentLocation = null;
+        var destinationLocation = null;
+        var currentMarker = null;
+        var transportMode = 'driving'; // Default mode
+
+        // Define tile layers
+        var baseLayers = {
+            'Streets': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }),
+            'Satellite': L.tileLayer('https://{s}.tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=e40536cdb5074c52b4f8ed6ec8d11c6c', {
+                attribution: '© Thunderforest'
+            }),
+            'Terrain': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                attribution: '© CartoDB'
+            })
+        };
+
+        // Set default tile layer
+        baseLayers.Streets.addTo(map);
+
+        document.getElementById('start').addEventListener('click', startVoiceCommand);
+        const responses = {
+            'take me to': (location) => `Here is ${location}, take a look.`,
+            'i want to go to': (location) => `Here is ${location}, take a look.`,
+            'zoom in': 'Zooming in.',
+            'zoom out': 'Zooming out.',
+            'pan left': 'Panning left.',
+            'pan right': 'Panning right.',
+            'pan up': 'Panning up.',
+            'pan down': 'Panning down.',
+            'terrain view': 'Terrain view activated.',
+            'satellite view': 'Satellite view activated.',
+            'street view': 'Street view activated.',
+            'find my location': 'Finding your location.',
+            'mode driving': 'Transport mode set to driving.',
+            'mode walking': 'Transport mode set to walking.',
+            'mode cycling': 'Transport mode set to cycling.',
+            'directions': 'Displaying directions.',
+            'route': 'Displaying route.',
+            'location not found': 'Location not found. Please try specifying a more accurate location.',
+            'geolocation not supported': 'Geolocation is not supported by your browser.',
+            'geolocation error': 'Unable to retrieve your location. Please ensure your device has location services enabled.',
+            'no route found': 'No route found.',
+            'directions error': 'An error occurred while getting directions.',
+            'command not recognized': 'Command not recognized. Please try again.',
+            'ask for clarification': 'Please provide more details or specify your query.',
+            'nearest restaurant': 'Finding the nearest restaurant.',
+            'nearest gas station': 'Finding the nearest gas station.',
+            'nearest hospital': 'Finding the nearest hospital.',
+            'current traffic': 'Fetching current traffic information.',
+            'weather at': (location) => `Fetching weather information for ${location}.`,
+            'nearest parking': 'Finding the nearest parking.',
+            'nearest hotel': 'Finding the nearest hotel.',
+            'reset map': 'Resetting map to default view.',
+            'toggle fullscreen': 'Toggling fullscreen mode.',
+            'distance to': (location) => `Calculating distance to ${location}.`,
+            'estimated travel time to': (location) => `Calculating estimated travel time to ${location}.`,
+            'clear directions': 'Clearing current directions.',
+            'save location': 'Saving current location.',
+            'load saved location': 'Loading saved location.',
+            'measure distance': 'Please specify the two points to measure distance between.',
+            'set home location': 'Setting current location as home.',
+            'navigate home': 'Navigating to home location.',
+            'navigate to work': 'Navigating to work location.'
+        };
+
+        // Function to start voice recognition
+        function startVoiceCommand() {
+            var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function(event) {
+                var command = event.results[0][0].transcript.toLowerCase();
+                console.log('Recognized command:', command); // Debugging log
+                processCommand(command);
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error', event);
+                giveFeedback('Sorry, there was an error with voice recognition. Please try again.');
+            };
+
+            recognition.onend = function() {
+                console.log('Speech recognition ended.');
+            };
+
+            recognition.start();
+        }
+
+        
+        // Function to process voice commands
+        function processCommand(command) {
+            console.log('Processing command:', command);
+
+            var destinationMatch = command.match(/(?:take me to|i want to go to|navigate to|show me)\s*(.+)/);
+            var zoomInMatch = command.match(/(?:zoom in to|zoom into)\s*(.+)/);
+            var zoomOutMatch = command.match(/(?:zoom out)/);
+            var panLeftMatch = command.includes('pan left');
+            var panRightMatch = command.includes('pan right');
+            var viewChangeMatch = command.match(/change to (streets|satellite|terrain) view/);
+            var echoMapMatch = command.includes('map');
+            if (echoMapMatch) {
+                giveFeedback('What can I do?');}
+            else if (destinationMatch && destinationMatch[1]) {
+                var destination = destinationMatch[1].trim();
+                navigateToLocation(destination);
+            } else if (zoomInMatch && zoomInMatch[1]) {
+                var zoomLocation = zoomInMatch[1].trim();
+                zoomToLocation(zoomLocation, 'in');
+            } else if (zoomOutMatch) {
+                zoomToLocation(null, 'out');
+            } else if (panLeftMatch) {
+                panLeft();
+            } else if (panRightMatch) {
+                panRight();
+            } else if (viewChangeMatch && viewChangeMatch[1]) {
+                var view = viewChangeMatch[1];
+                changeMapView(view);
+            } else {
+                giveFeedback('Command not recognized, please try again.');
+            }
+        }
+
+        function navigateToLocation(destination) {
+            var geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}`;
+
+            axios.get(geocodeUrl).then(response => {
+                if (response.data && response.data.length > 0) {
+                    var place = response.data[0];
+                    var lat = place.lat;
+                    var lon = place.lon;
+
+                    destinationLocation = { lat: parseFloat(lat), lon: parseFloat(lon) };
+
+                    if (currentMarker) {
+                        currentMarker.remove();
+                    }
+
+                    currentMarker = L.marker([lat, lon]).addTo(map)
+                        .bindPopup(`<b>${place.display_name}</b>`).openPopup();
+
+                    map.setView([lat, lon], 12);
+                    giveFeedback(`Sure, here's ${place.display_name}`);
+
+                    setTimeout(() => {
+                        askTransportMode();
+                    }, 2000);
+                } else {
+                    giveFeedback('Location not found. Please try specifying a more accurate location.');
+                }
+            }).catch(error => {
+                console.error('Geocoding error', error);
+                giveFeedback('An error occurred while finding the location.');
+            });
+        }
+
+        function zoomToLocation(location, zoomType) {
+            if (zoomType === 'in') {
+                var geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`;
+
+                axios.get(geocodeUrl).then(response => {
+                    if (response.data && response.data.length > 0) {
+                        var place = response.data[0];
+                        var lat = place.lat;
+                        var lon = place.lon;
+
+                        map.setView([lat, lon], 14);
+                        giveFeedback(`Sure, here's ${place.display_name} zoomed in.`);
+                    } else {
+                        giveFeedback('Location not found. Please try specifying a more accurate location.');
+                    }
+                }).catch(error => {
+                    console.error('Geocoding error', error);
+                    giveFeedback('An error occurred while finding the location.');
+                });
+            } else if (zoomType === 'out') {
+                map.setZoom(map.getZoom() - 1);
+                giveFeedback('Zooming out.');
+            }
+        }
+
+        // Function to pan the map left
+        function panLeft() {
+            map.panBy([-100, 0]); // Adjust the x-axis pan value as needed
+            giveFeedback('Panning left.');
+        }
+
+        // Function to pan the map right
+        function panRight() {
+            map.panBy([100, 0]); // Adjust the x-axis pan value as needed
+            giveFeedback('Panning right.');
+        }
+
+        function askTransportMode() {
+            giveFeedback("Which mode of transportation are you using? (driving, walking, cycling)");
+            var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function(event) {
+                var command = event.results[0][0].transcript.toLowerCase();
+                if (command.includes('driving')) {
+                    transportMode = 'driving';
+                } else if (command.includes('walking')) {
+                    transportMode = 'walking';
+                } else if (command.includes('cycling')) {
+                    transportMode = 'cycling';
+                } else {
+                    giveFeedback('Transport mode not recognized, defaulting to driving.');
+                }
+
+                findUserLocation();
+            };
+
+            recognition.start();
+        }
+
+        function findUserLocation() {
+            if (!navigator.geolocation) {
+                giveFeedback('Geolocation is not supported by your browser.');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(position => {
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+                currentLocation = { lat: lat, lon: lon };
+
+                if (currentMarker) {
+                    currentMarker.remove();
+                }
+
+                currentMarker = L.marker([lat, lon]).addTo(map)
+                    .bindPopup('<b>You are here</b>').openPopup();
+
+                map.setView([lat, lon], 12);
+                calculateRoute();
+            }, error => {
+                console.error('Geolocation error', error);
+                giveFeedback('Unable to retrieve your location. Please ensure your device has location services enabled.');
+            });
+        }
+
+        function calculateRoute() {
+            if (!currentLocation || !destinationLocation) {
+                giveFeedback('Current or destination location not set.');
+                return;
+            }
+
+            var directionsUrl = `https://router.project-osrm.org/route/v1/${transportMode}/${currentLocation.lon},${currentLocation.lat};${destinationLocation.lon},${destinationLocation.lat}?steps=true&geometries=geojson`;
+
+            axios.get(directionsUrl).then(response => {
+                var route = response.data.routes[0];
+                if (route) {
+                    var routeCoordinates = route.geometry.coordinates.map(point => [point[1], point[0]]);
+                    if (currentMarker) {
+                        currentMarker.remove();
+                    }
+
+                    var routeLine = L.polyline(routeCoordinates, { color: 'blue' }).addTo(map);
+                    map.fitBounds(routeLine.getBounds());
+
+                    var duration = Math.round(route.duration / 60); // Convert seconds to minutes
+                    giveFeedback(`The estimated travel time is ${duration} minutes. Should I start directions?`);
+
+                    askToStartDirections(route.legs[0].steps);
+                } else {
+                    giveFeedback('No route found.');
+                }
+            }).catch(error => {
+                console.error('Directions error', error);
+                giveFeedback('An error occurred while getting directions.');
+            });
+        }
+
+        function askToStartDirections(steps) {
+            var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function(event) {
+                var command = event.results[0][0].transcript.toLowerCase();
+                if (command.includes('yes')) {
+                    provideDirections(steps);
+                } else {
+                    giveFeedback('Directions cancelled.');
+                }
+            };
+
+            recognition.start();
+        }
+
+        function provideDirections(steps) {
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    var instruction = step.maneuver.instruction || step.name || `Step ${index + 1}`;
+                    giveFeedback(`Step ${index + 1}: ${instruction}`);
+                }, index * 5000); // Delay each step announcement by 5 seconds
+            });
+        }
+
+        function changeMapView(view) {
+            switch (view) {
+                case 'streets':
+                    baseLayers.Streets.addTo(map);
+                    baseLayers.Satellite.remove();
+                    baseLayers.Terrain.remove();
+                    giveFeedback('Sure! Here\'s streets view.');
+                    break;
+                case 'satellite':
+                    baseLayers.Satellite.addTo(map);
+                    baseLayers.Streets.remove();
+                    baseLayers.Terrain.remove();
+                    giveFeedback('Sure! Here\'s satellite view.');
+                    break;
+                case 'terrain':
+                    baseLayers.Terrain.addTo(map);
+                    baseLayers.Streets.remove();
+                    baseLayers.Satellite.remove();
+                    giveFeedback('Sure! Here\'s terrain view.');
+                    break;
+                default:
+                    giveFeedback('View type not recognized.');
+                    break;
+            }
+        }
+
+        function giveFeedback(message) {
+            var msg = new SpeechSynthesisUtterance(message);
+            window.speechSynthesis.speak(msg);
+        }
+    </script>
+</body>
+</html>

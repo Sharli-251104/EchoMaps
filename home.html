@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice-Enabled Geospatial Map</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: larger;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: aliceblue;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .btn-custom {
+            margin: 20px;
+            padding: 10px 20px;
+            font-size: 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #0c79ed;
+            color: white;
+            display: flex;
+        }
+        .btn-custom:hover {
+            background-color: #0056b3;
+        }
+        .btn-cont {
+            display: flex;
+        }
+        .content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .image {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-top: 0 px; /* Adjust this value for more or less space */
+        }
+        .image img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 100px;
+        }
+        .navbar {
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            background-color: white;
+            padding: 10px 20px;
+            color: black;
+            border-bottom: 1px solid lightgrey;
+            background-color: aliceblue;
+        }
+        .navbar .navbar-brand img {
+            max-height: 50px;
+        }
+        .navbar-nav {
+            flex-direction: row;
+            margin-left: auto;
+        }
+        .nav-link {
+            color: black !important;
+            margin-left: 15px;
+        }
+        
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="#">
+        <img src="logo.png" alt="Logo"> 
+    </a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-toggle="modal" data-target="#contactModal">Contact Us</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-toggle="modal" data-target="#helpModal">Help</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row align-items-center">
+        <div class="col-md-6 content text-center">
+            <h1>"Explore. Discover. Navigate. All with your voice."</h1>
+            <p>Experience the future of navigation. Just speak to attain your destination.</p>
+            <div class="btn-cont">
+                <a class="btn-custom" href="signin.html">Sign up</a> 
+                <a class="btn-custom" href="index.html">Explore Now</a>
+            </div>
+        </div>
+        <div class="col-md-6 image text-center">
+            <img src="earth1.png" alt="Voice-enabled geospatial map image">
+        </div>
+    </div>
+</div>
+
+<!-- Contact Us Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" role="dialog" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Contact Us</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>We’re here to assist you! Reach out to us for any inquiries or support:</p>
+                <p><strong>Email:</strong> echomaps@gmail.com</p>
+                <p><strong>Phone:</strong> +91 9344490801</p>
+                <p><strong>Address:</strong> 12, Pointcare street, Puducherry, India</p>
+                <p>For general questions, technical support, or feedback, feel free to contact us. We’re always happy to help!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="helpModalLabel">Help</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h5>Getting Started</h5>
+                <p>Our voice-enabled geospatial map is designed to make navigation easier and more intuitive. Here’s how to get started:</p>
+                <ul>
+                    <li><strong>Initiate Navigation:</strong> Say "Hey Map!" followed by your destination.</li>
+                    <li><strong>Get Directions:</strong> Ask for directions to a specific place by saying "Take me to [place]."</li>
+                    <li><strong>Find Places:</strong> Inquire about nearby landmarks, restaurants, or businesses by saying "Find places near me."</li>
+                    <li><strong>Adjust Settings:</strong> Customize your experience by saying "Zoom in / Zoom out" and adjusting options as needed.</li>
+                </ul>
+                <p>If you encounter any issues or have questions, please consult our <a href="#">FAQ</a> or reach out to our support team.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
